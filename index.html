@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dracovale</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;700;800;900&display=swap">
+<style>
+/* Layout: mobile-first game shell. Sticky resource bar on top, one scrolling view, fixed tab bar at the bottom. */
+:root{
+  --night:#17122b; --night-2:#211a3d; --panel:#2b2250; --panel-2:#392d6b; --line:#51449a;
+  --gold:#ffc83d; --gold-ink:#3a2600; --ember:#ff6a3d; --mint:#5ee0b0; --gem:#6fd8ff;
+  --text:#f6f1ff; --muted:#b9aee3; --danger:#ff8a98;
+  --font-display:'Lilita One','Trebuchet MS',system-ui,sans-serif;
+  --font-body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--night)}
+body{color:var(--text);font:15px/1.45 var(--font-body);
+  background:var(--night) radial-gradient(120% 60% at 50% -10%,#3a2a78 0%,rgba(23,18,43,0) 60%) no-repeat;
+  min-height:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--night);z-index:30}
+button{font:inherit;color:inherit}
+.app{max-width:760px;margin:0 auto;padding-block:0 110px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--night);
+  display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;padding-block:10px;border-bottom:1px solid var(--line)}
+.brand{font-family:var(--font-display);font-size:24px;letter-spacing:.5px;color:var(--gold)}
+.res{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--night-2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip.el{border-color:transparent;color:#1a1530}
+h1,h2,h3{font-family:var(--font-display);font-weight:400;margin:0;text-wrap:balance}
+h1{font-size:28px;margin:18px 0 4px}
+h2{font-size:22px}
+.lead{color:var(--muted);margin:0 0 14px;max-width:62ch}
+.small{font-size:13px;color:var(--muted)}
+.muted{color:var(--muted)}
+.btn{border:0;border-radius:12px;padding:9px 14px;background:var(--panel-2);font-weight:800;cursor:pointer;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{background:#463a82}
+.btn.gold{background:var(--gold);color:var(--gold-ink)}
+.btn.gold:hover{background:#ffd666}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:default}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row.between{justify-content:space-between}
+.tip{background:var(--panel);border-radius:16px;padding:12px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.tip p{margin:0;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
+.pen{position:relative;background:linear-gradient(165deg,color-mix(in srgb,var(--el,#51449a) 30%,var(--panel)),var(--panel) 70%);
+  border-radius:20px;padding:10px 10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pen.empty,.pen.buy{background:transparent;border:2px dashed var(--line);align-items:center;justify-content:center;text-align:center;min-height:210px;color:var(--muted);cursor:default}
+.pen.buy{cursor:pointer;color:var(--text);font-weight:800}
+.pen.buy:hover{border-color:var(--gold)}
+.dragon-btn{background:none;border:0;padding:18px 0 0;cursor:pointer;display:block}
+svg.dr{width:100%;max-width:150px;height:auto;display:block;margin:0 auto}
+.pen-meta{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.pen-meta b{font-family:var(--font-display);font-weight:400;font-size:17px;overflow-wrap:anywhere}
+.lv{font-size:12px;font-weight:900;color:var(--muted);white-space:nowrap}
+.coin{position:absolute;top:8px;right:8px;display:flex;gap:4px;align-items:center;background:var(--gold);color:var(--gold-ink);border:0;border-radius:999px;padding:3px 9px;font-weight:900;font-variant-numeric:tabular-nums;cursor:pointer;z-index:2}
+.coin.empty{background:var(--night-2);color:var(--muted)}
+.coin.full{box-shadow:0 0 0 2px var(--ember)}
+.bar{height:8px;border-radius:99px;background:var(--night-2);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--mint);width:0;transition:width .3s}
+.bar.g>i{background:var(--gold)}
+.bob{animation:bob 3.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.wob{animation:wob 1.2s ease-in-out infinite;transform-origin:50% 92%}
+@keyframes wob{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+.list{display:grid;gap:12px}
+.card{background:var(--panel);border-radius:18px;padding:14px;min-width:0}
+.nest{display:grid;grid-template-columns:84px 1fr;gap:14px;align-items:center}
+.nest svg.egg{width:84px;height:auto;display:block}
+.nest.empty{background:transparent;border:2px dashed var(--line);color:var(--muted);display:block}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.slot{background:var(--night-2);border:2px dashed var(--line);border-radius:16px;padding:10px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;cursor:pointer;width:100%}
+.slot.on{border-style:solid;border-color:var(--panel-2)}
+.slot svg.dr{max-width:96px}
+.minis{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.minis svg.dr{width:46px}
+.sil svg{filter:brightness(0);opacity:.35}
+.shop{display:grid;gap:10px}
+.item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:var(--panel);border-radius:16px;padding:12px 14px}
+.item b{font-family:var(--font-display);font-weight:400;font-size:17px}
+.item p{margin:0}
+.dex{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
+.dexc{background:var(--panel);border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.dexc b{font-family:var(--font-display);font-weight:400;font-size:17px}
+.q{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;background:var(--panel);border-radius:16px;padding:12px 14px}
+.q .bar{grid-column:1/-1}
+.q.done{opacity:.6}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--night-2);border-top:1px solid var(--line);
+  padding:6px max(10px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
+.nav-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.tab{position:relative;background:none;border:0;border-radius:12px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:800;color:var(--muted);cursor:pointer;min-width:0}
+.tab svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tab.on{color:var(--gold);background:var(--panel)}
+.dot{position:absolute;top:4px;right:calc(50% - 20px);width:9px;height:9px;border-radius:50%;background:var(--ember);border:2px solid var(--night-2)}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(10,6,24,.75);display:flex;align-items:center;justify-content:center;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:18px;width:100%;max-width:440px;max-height:100%;overflow:auto;display:grid;gap:10px;text-align:center}
+.sheet .big svg.dr{max-width:210px}
+.sheet .row{justify-content:center}
+.pick{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;background:var(--night-2);border:0;border-radius:14px;padding:8px 10px;text-align:left;width:100%;cursor:pointer}
+.pick:disabled{opacity:.45;cursor:default}
+.pick svg.dr{width:56px}
+.toasts{position:fixed;left:0;right:0;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:60;display:grid;gap:6px;justify-items:center;pointer-events:none;padding-inline:16px}
+.toast{background:var(--text);color:var(--night);font-weight:800;padding:8px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.4);animation:tin .25s ease-out;max-width:100%}
+@keyframes tin{from{transform:translateY(8px);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="top" id="top"></header>
+  <main id="view"></main>
+</div>
+<nav class="nav" id="nav" aria-label="Navigation"></nav>
+<div id="modal"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const fmt=n=>Math.floor(n).toLocaleString('fr-FR');
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const hex2=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mix=(a,b,t)=>{const x=hex2(a),y=hex2(b);return '#'+x.map((v,i)=>Math.round(v+(y[i]-v)*t).toString(16).padStart(2,'0')).join('')};
+const dark=h=>mix(h,'#000000',.22);
+
+/* ---------- Données du jeu ---------- */
+const RAR={
+  commun:{n:'Commun',inc:14,val:60,hatch:20},
+  rare:{n:'Rare',inc:30,val:180,hatch:40},
+  epique:{n:'Épique',inc:70,val:500,hatch:75}
+};
+const SPECIES={
+  feu:{n:'Braisard',el:'Feu',r:'commun',c:{b:'#e8552d',l:'#ffc46b',a:'#ffb02e',w:'#b8321a'}},
+  eau:{n:'Marélin',el:'Eau',r:'commun',c:{b:'#1f7fcf',l:'#bfe8ff',a:'#5ee0e8',w:'#17579a'}},
+  terre:{n:'Roclan',el:'Terre',r:'commun',c:{b:'#8a6a3f',l:'#d9c08a',a:'#7fa356',w:'#5b4528'}},
+  air:{n:'Zéphyrien',el:'Air',r:'commun',c:{b:'#bfe3f2',l:'#ffffff',a:'#8fd3ff',w:'#e4f6ff'}},
+  nature:{n:'Sylvaline',el:'Nature',r:'rare',c:{b:'#4fa850',l:'#d7f0a0',a:'#f2c94c',w:'#2f7a3a'}},
+  foudre:{n:'Voltaïr',el:'Foudre',r:'rare',c:{b:'#f2c230',l:'#fff3b0',a:'#7a5cff',w:'#c79a10'}},
+  glace:{n:'Givrelune',el:'Glace',r:'rare',c:{b:'#8aa4ff',l:'#eef2ff',a:'#d6f3ff',w:'#6a82e0'}},
+  lave:{n:'Cendrageon',el:'Lave',r:'rare',c:{b:'#4a3333',l:'#ff8a3d',a:'#ff4d1a',w:'#2a1b1b'}},
+  lumiere:{n:'Auréolis',el:'Lumière',r:'epique',c:{b:'#fff0b0',l:'#ffffff',a:'#ffc83d',w:'#ffe9a0'}},
+  ombre:{n:'Nocturne',el:'Ombre',r:'epique',c:{b:'#4a3a7a',l:'#7a6aa8',a:'#c06bff',w:'#2c2150'}}
+};
+const ORDER=Object.keys(SPECIES);
+const RECIPES={'air+feu':'foudre','air+eau':'glace','eau+terre':'nature','feu+terre':'lave','foudre+nature':'lumiere','glace+lave':'ombre'};
+const BASIC=['feu','eau','terre','air'];
+const CAPMIN=20, BREED_COST=60, REST_MS=90000, MAXPENS=12, MAXLV=10;
+
+/* ---------- Icônes ---------- */
+const ico={
+  gold:'<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="#ffc83d" stroke="#b9811a" stroke-width="1.5"/><circle cx="8" cy="8" r="3.4" fill="none" stroke="#b9811a" stroke-width="1.5"/></svg>',
+  gem:'<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l5.5 4.5L8 14.5 2.5 6z" fill="#6fd8ff" stroke="#2a8fb8" stroke-width="1.3" stroke-linejoin="round"/><path d="M2.5 6h11M6 6l2 8.5L10 6" fill="none" stroke="#2a8fb8" stroke-width="1"/></svg>',
+  berry:'<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="5.5" cy="10.5" r="4" fill="#ff5d7a"/><circle cx="10.5" cy="10" r="4" fill="#e63e66"/><path d="M8 6c0-2 1-3 3-3.5" stroke="#5ee0b0" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>'
+};
+const NAVI={
+  domaine:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  nids:'<path d="M12 3c3.5 0 6 6 6 10a6 6 0 0 1-12 0c0-4 2.5-10 6-10z"/>',
+  boutique:'<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+  bestiaire:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M8 17h11"/>',
+  defis:'<path d="M6 21V4"/><path d="M6 5h12l-3 4 3 4H6"/>'
+};
+const TABS=[['domaine','Domaine'],['nids','Nids'],['boutique','Boutique'],['bestiaire','Bestiaire'],['defis','Défis']];
+
+/* ---------- Dessin des dragons ---------- */
+function spike(sp,x,y,h,C){
+  const a=C.a;
+  switch(sp){
+    case 'terre':return `<rect x="${x-6}" y="${y-h}" width="12" height="${h+4}" rx="4" fill="${a}"/>`;
+    case 'glace':return `<path d="M${x} ${y+2} L${x-5} ${y-h*.4} L${x} ${y-h*1.5} L${x+5} ${y-h*.4}Z" fill="${a}"/>`;
+    case 'nature':return `<ellipse cx="${x}" cy="${y-h*.5}" rx="4" ry="${h*.9}" transform="rotate(${(x-95)*1.1} ${x} ${y})" fill="#8be07a"/>`;
+    case 'eau':return `<path d="M${x-7} ${y+3} Q${x} ${y-h*2} ${x+7} ${y+3}Z" fill="${a}" opacity=".9"/>`;
+    case 'air':return `<ellipse cx="${x}" cy="${y-h*.5}" rx="3.2" ry="${h}" transform="rotate(${(x-95)*.8} ${x} ${y})" fill="${a}"/>`;
+    case 'foudre':return `<path d="M${x-5} ${y+3} L${x-1} ${y-h} L${x+1} ${y-h*.3} L${x+6} ${y-h*1.4} L${x+4} ${y+3}Z" fill="${a}"/>`;
+    default:return `<path d="M${x-5} ${y+3} L${x} ${y-h} L${x+5} ${y+3}Z" fill="${a}"/>`;
+  }
+}
+function tip(sp,C){
+  const a=C.a;
+  switch(sp){
+    case 'feu':return `<path d="M0 8 C-8 4 -7 -3 -2 -9 C-2 -3 1 -3 2 -9 C8 -2 8 4 0 8Z" fill="${a}"/><path d="M0 7 C-3 5 -3 2 0 -1 C3 2 3 5 0 7Z" fill="#fff3a8"/>`;
+    case 'eau':return `<path d="M0 0 C-12 4 -14 14 -6 16 C-2 10 2 10 6 16 C14 14 12 4 0 0Z" fill="${a}"/>`;
+    case 'terre':return `<circle cx="0" cy="2" r="8" fill="${a}"/><circle cx="-3" cy="-1" r="2" fill="#fff" opacity=".25"/>`;
+    case 'air':return `<ellipse cx="-5" cy="4" rx="3" ry="9" transform="rotate(25)" fill="${a}"/><ellipse cx="4" cy="4" rx="3" ry="9" transform="rotate(-25)" fill="${a}"/><ellipse cx="0" cy="6" rx="3" ry="10" fill="#fff"/>`;
+    case 'nature':return `<ellipse cx="-5" cy="2" rx="4" ry="9" transform="rotate(35)" fill="#8be07a"/><ellipse cx="5" cy="2" rx="4" ry="9" transform="rotate(-35)" fill="#4fa850"/>`;
+    case 'foudre':return `<path d="M2 -8 L-6 4 L0 4 L-3 14 L7 0 L1 0Z" fill="${a}"/>`;
+    case 'glace':return `<path d="M0 -10 L7 2 L0 14 L-7 2Z" fill="${a}"/>`;
+    case 'lave':return `<circle r="7" fill="${a}" opacity=".5"/><circle r="4" fill="#ffd54a"/>`;
+    case 'lumiere':return `<path d="M0 -10 L2.5 -2.5 L10 0 L2.5 2.5 L0 10 L-2.5 2.5 L-10 0 L-2.5 -2.5Z" fill="${a}"/>`;
+    default:return `<circle cx="0" cy="0" r="6" fill="${a}" opacity=".8"/><circle cx="-6" cy="8" r="4" fill="${a}" opacity=".5"/><circle cx="-10" cy="15" r="2.4" fill="${a}" opacity=".3"/>`;
+  }
+}
+function headDeco(sp,C){
+  const a=C.a;
+  switch(sp){
+    case 'eau':return `<path d="M126 64 Q134 40 150 58Z" fill="${a}"/>`;
+    case 'nature':return `<g transform="translate(132 55)"><circle cx="0" cy="-4" r="3.2" fill="#ff9ec4"/><circle cx="4" cy="0" r="3.2" fill="#ff9ec4"/><circle cx="0" cy="4" r="3.2" fill="#ff9ec4"/><circle cx="-4" cy="0" r="3.2" fill="#ff9ec4"/><circle r="2.4" fill="#ffc83d"/></g>`;
+    case 'lumiere':return `<ellipse cx="140" cy="46" rx="20" ry="6" fill="none" stroke="${a}" stroke-width="4"/>`;
+    case 'foudre':return `<path d="M138 62 L132 72 L137 72 L134 80 L144 68 L139 68 L142 62Z" fill="${a}"/>`;
+    case 'glace':return [126,138,150].map(x=>`<path d="M${x} 62 L${x-4} 54 L${x} 46 L${x+4} 54Z" fill="${a}"/>`).join('');
+    case 'ombre':return `<circle cx="140" cy="62" r="5" fill="${a}"/><circle cx="142.5" cy="61" r="4.2" fill="${C.b}"/>`;
+    default:return '';
+  }
+}
+function bodyMark(sp,C){
+  const a=C.a;
+  switch(sp){
+    case 'foudre':return `<path d="M96 100 L84 122 L94 122 L88 142 L108 116 L97 116 L104 100Z" fill="${a}" opacity=".85"/>`;
+    case 'lave':return `<path d="M68 112 L80 120 L74 132 M98 100 L108 114 L100 124" fill="none" stroke="${a}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+    case 'eau':return `<path d="M66 118 Q80 108 94 118 M70 130 Q84 120 98 130" fill="none" stroke="${a}" stroke-width="3" stroke-linecap="round" opacity=".6"/>`;
+    case 'glace':return `<circle cx="72" cy="114" r="3" fill="#fff" opacity=".7"/><circle cx="90" cy="108" r="2.2" fill="#fff" opacity=".7"/><circle cx="104" cy="120" r="2.6" fill="#fff" opacity=".7"/>`;
+    case 'terre':return `<circle cx="72" cy="112" r="6" fill="${dark(C.b)}" opacity=".5"/><circle cx="96" cy="106" r="4" fill="${dark(C.b)}" opacity=".5"/>`;
+    case 'nature':return `<path d="M64 124 C76 104 92 104 106 118" fill="none" stroke="${C.w}" stroke-width="3" stroke-linecap="round" opacity=".7"/>`;
+    case 'lumiere':return `<path d="M72 108 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="${C.a}"/><circle cx="98" cy="112" r="2.2" fill="${C.a}"/>`;
+    case 'ombre':return `<path d="M72 120 C78 104 96 104 98 118 C99 128 86 130 84 122" fill="none" stroke="${C.a}" stroke-width="3" stroke-linecap="round" opacity=".7"/>`;
+    case 'feu':return `<path d="M66 124 Q80 116 94 124 M72 136 Q86 128 100 136" fill="none" stroke="${C.l}" stroke-width="3" stroke-linecap="round" opacity=".5"/>`;
+    default:return '';
+  }
+}
+function dragonSVG(sp,stage,cls){
+  const S=SPECIES[sp],C=S.c,d=dark(C.b);
+  const sc=[.74,.88,1][stage],hs=[1.38,1.16,1][stage],ws=[.45,.8,1][stage],hl=[3,8,13][stage],er=[7.5,6.5,5.8][stage],sh=[5,8,11][stage];
+  const top=x=>122-34*Math.sqrt(Math.max(0,1-Math.pow((x-95)/44,2)));
+  const spikes=[66,80,95,109].map(x=>spike(sp,x,top(x),sh,C)).join('');
+  const horn=(sp==='lave'||sp==='ombre')?C.a:mix(C.l,'#7a6a50',.3);
+  return `<svg class="dr ${cls||''}" viewBox="0 0 200 180" role="img" aria-label="${S.n}">
+<ellipse cx="100" cy="169" rx="${(52*sc).toFixed(1)}" ry="6" fill="#000" opacity=".25"/>
+<g transform="translate(100 172) scale(${sc}) translate(-100 -172)">
+<g transform="translate(92 108) scale(${ws}) translate(-92 -108)">
+<path d="M92 105 C80 70 60 45 38 38 C50 52 48 64 44 72 C56 66 64 70 66 80 C76 76 84 84 92 105Z" fill="${C.w}" stroke="${dark(C.w)}" stroke-width="2" stroke-linejoin="round"/>
+<path d="M92 105 C70 75 55 55 38 38" fill="none" stroke="${dark(C.w)}" stroke-width="2.5" stroke-linecap="round"/>
+</g>
+<path d="M62 108 C38 108 18 124 22 156 C30 146 38 142 66 142Z" fill="${C.b}"/>
+<g transform="translate(22 154)">${tip(sp,C)}</g>
+<rect x="62" y="134" width="18" height="28" rx="9" fill="${d}"/><ellipse cx="71" cy="163" rx="12" ry="6" fill="${d}"/>
+<ellipse cx="95" cy="122" rx="44" ry="34" fill="${C.b}"/>
+<ellipse cx="100" cy="134" rx="30" ry="22" fill="${C.l}"/>
+${bodyMark(sp,C)}
+<rect x="104" y="134" width="18" height="28" rx="9" fill="${C.b}"/><ellipse cx="113" cy="163" rx="12" ry="6" fill="${d}"/>
+<path d="M104 104 C112 84 124 72 140 70 L150 98 C136 108 120 116 106 122Z" fill="${C.b}"/>
+${spikes}
+<g transform="translate(142 86) scale(${hs}) translate(-142 -86)">
+<path d="M128 62 L118 ${62-hl} L136 58Z" fill="${horn}"/><path d="M140 58 L136 ${58-hl} L150 60Z" fill="${horn}"/>
+<ellipse cx="142" cy="80" rx="26" ry="22" fill="${C.b}"/>
+<ellipse cx="164" cy="90" rx="17" ry="12" fill="${C.b}"/>
+<ellipse cx="160" cy="95" rx="13" ry="7" fill="${C.l}" opacity=".6"/>
+${headDeco(sp,C)}
+<circle cx="148" cy="76" r="${er+1.5}" fill="#fff"/><circle cx="149" cy="76.5" r="${er}" fill="${sp==='ombre'||sp==='lave'?C.a:mix(C.a,'#3a2a1a',.35)}"/><circle cx="150" cy="77" r="${(er*.55).toFixed(1)}" fill="#1a1530"/><circle cx="147.5" cy="73.5" r="${(er*.28).toFixed(1)}" fill="#fff"/>
+<circle cx="174" cy="86" r="1.8" fill="${d}"/>
+<path d="M156 96 Q166 101 177 95" fill="none" stroke="${d}" stroke-width="2" stroke-linecap="round"/>
+${stage===0?'<circle cx="153" cy="92" r="4" fill="#ff9ec4" opacity=".4"/>':''}
+</g>
+</g></svg>`;
+}
+function eggSVG(sp,mys,cls){
+  const c=mys?{b:'#6b5fb0',l:'#8f84cf',a:'#c9bff2'}:SPECIES[sp].c;
+  return `<svg class="egg ${cls||''}" viewBox="0 0 100 120" role="img" aria-label="${mys?'Œuf mystère':'Œuf de '+SPECIES[sp].el}">
+<ellipse cx="50" cy="114" rx="34" ry="5" fill="#000" opacity=".25"/>
+<path d="M50 8 C78 8 92 52 92 78 C92 102 74 114 50 114 C26 114 8 102 8 78 C8 52 22 8 50 8Z" fill="${c.b}"/>
+<path d="M12 80 Q50 66 88 80 C88 100 72 112 50 112 C28 112 12 100 12 80Z" fill="${c.l}" opacity=".75"/>
+<circle cx="34" cy="42" r="6" fill="${c.a}" opacity=".85"/><circle cx="62" cy="30" r="4" fill="${c.a}" opacity=".85"/><circle cx="66" cy="56" r="7" fill="${c.a}" opacity=".85"/>
+<ellipse cx="36" cy="30" rx="6" ry="12" transform="rotate(20 36 30)" fill="#fff" opacity=".22"/>
+${mys?'<text x="50" y="96" text-anchor="middle" font-size="34" font-family="Lilita One,sans-serif" fill="#fff">?</text>':''}
+</svg>`;
+}
+
+/* ---------- État ---------- */
+const KEY='dracovale-save-v1';
+function fresh(){const t=Date.now();return{
+  gold:150,gems:2,food:12,nextId:2,pens:[1,null],
+  dragons:{1:{id:1,sp:'feu',lv:1,xp:0,t:t,rest:0}},
+  nests:[{sp:'eau',end:t+15000,mys:false},null],
+  disc:{feu:1},stats:{hatched:0,fed:0,bred:0,collected:0,sold:0},claimed:{},tip:true};}
+let S;
+try{const raw=localStorage.getItem(KEY);S=raw?Object.assign(fresh(),JSON.parse(raw)):fresh();}catch(e){S=fresh();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+const ui={tab:'domaine',modal:null,pa:null,pb:null,sell:null,arm:false};
+
+/* ---------- Règles ---------- */
+const stageOf=l=>l>=7?2:l>=4?1:0;
+const xpNeed=l=>2+l;
+const incOf=d=>RAR[SPECIES[d.sp].r].inc*d.lv;
+function pending(d){const i=incOf(d);return Math.min(i*(Date.now()-d.t)/60000,i*CAPMIN);}
+const capOf=d=>incOf(d)*CAPMIN;
+const dragonList=()=>S.pens.filter(Boolean).map(id=>S.dragons[id]);
+const maxLv=()=>dragonList().reduce((m,d)=>Math.max(m,d.lv),0);
+const sellValue=d=>Math.round(RAR[SPECIES[d.sp].r].val*(1+.35*(d.lv-1)));
+const penPrice=()=>Math.round(250*Math.pow(2.2,S.pens.length-2)/10)*10;
+const nestPrice=()=>S.nests.length===2?6:12;
+const freeNest=()=>S.nests.findIndex(n=>!n);
+const canBreed=d=>d.lv>=4;
+function outcome(a,b){
+  if(a===b)return a;
+  const r=RECIPES[[a,b].sort().join('+')];
+  if(r&&Math.random()<.55)return r;
+  return Math.random()<.5?a:b;
+}
+function possible(a,b){
+  const o=[a];if(b!==a)o.push(b);
+  const r=RECIPES[[a,b].sort().join('+')];if(r)o.push(r);
+  return o;
+}
+function giveEgg(sp,mys){
+  const i=freeNest();if(i<0)return false;
+  S.nests[i]={sp,mys,end:Date.now()+RAR[SPECIES[sp].r].hatch*1000};
+  return true;
+}
+function mysterySpecies(){
+  const x=Math.random(),r=x<.62?'commun':x<.95?'rare':'epique';
+  return rnd(ORDER.filter(k=>SPECIES[k].r===r));
+}
+const timeStr=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+
+function toast(m){
+  const el=document.createElement('div');el.className='toast';el.textContent=m;$('#toasts').appendChild(el);
+  setTimeout(()=>el.remove(),2400);
+}
+function collect(id){
+  const d=S.dragons[id];if(!d)return;
+  const g=Math.floor(pending(d));
+  if(g<1){toast('Rien à récolter pour l’instant.');return;}
+  S.gold+=g;S.stats.collected+=g;d.t=Date.now();toast('+'+fmt(g)+' pièces');
+}
+function collectAll(){
+  let g=0;const now=Date.now();
+  dragonList().forEach(d=>{const p=Math.floor(pending(d));if(p>0){g+=p;d.t=now;}});
+  if(g<1){toast('Rien à récolter pour l’instant.');return;}
+  S.gold+=g;S.stats.collected+=g;toast('+'+fmt(g)+' pièces');
+}
+function feed(id,n){
+  const d=S.dragons[id];if(!d)return;let c=0;
+  for(let k=0;k<n;k++){
+    if(d.lv>=MAXLV){if(!c)toast('Niveau maximum atteint.');break;}
+    if(S.food<1){if(!c)toast('Plus de baies. Passez à la boutique.');break;}
+    S.food--;d.xp++;S.stats.fed++;c++;
+    if(d.xp>=xpNeed(d.lv)){
+      d.xp=0;d.lv++;toast(SPECIES[d.sp].n+' passe au niveau '+d.lv+' !');
+      if(d.lv===7){S.gems++;toast('Dragon adulte ! +1 gemme');}
+    }
+  }
+}
+function hatch(i){
+  const e=S.nests[i];if(!e||e.end>Date.now())return;
+  const pi=S.pens.indexOf(null);
+  if(pi<0){toast('Aucun enclos libre. Achetez-en un ou vendez un dragon.');return;}
+  const id=S.nextId++;
+  S.dragons[id]={id:id,sp:e.sp,lv:1,xp:0,t:Date.now(),rest:0};
+  S.pens[pi]=id;S.nests[i]=null;S.stats.hatched++;
+  const isNew=!S.disc[e.sp];
+  if(isNew){S.disc[e.sp]=1;S.gems+=2;}
+  ui.modal={t:'reveal',sp:e.sp,isNew:isNew};
+}
+function speed(i){
+  const e=S.nests[i];if(!e)return;
+  const cost=Math.max(1,Math.ceil((e.end-Date.now())/30000));
+  if(S.gems<cost){toast('Pas assez de gemmes.');return;}
+  S.gems-=cost;e.end=Date.now();
+}
+function breed(){
+  const A=S.dragons[ui.pa],B=S.dragons[ui.pb],now=Date.now();
+  if(!A||!B||A===B){toast('Choisissez deux dragons.');return;}
+  if(A.rest>now||B.rest>now){toast('Un des parents se repose encore.');return;}
+  if(freeNest()<0){toast('Tous les nids sont occupés.');return;}
+  if(S.gold<BREED_COST){toast('Pas assez de pièces.');return;}
+  S.gold-=BREED_COST;
+  giveEgg(outcome(A.sp,B.sp),true);
+  A.rest=B.rest=now+REST_MS;S.stats.bred++;ui.pa=ui.pb=null;
+  toast('Un œuf mystère est dans un nid !');
+}
+function spend(g){if(S.gold<g){toast('Pas assez de pièces.');return false;}S.gold-=g;return true;}
+function buy(k){
+  if(k==='food5'){if(spend(50)){S.food+=5;}}
+  else if(k==='food20'){if(spend(170)){S.food+=20;}}
+  else if(k.indexOf('egg:')===0){
+    if(freeNest()<0){toast('Tous les nids sont occupés.');return;}
+    if(spend(120))giveEgg(k.slice(4),false);
+  }
+  else if(k==='mys'){
+    if(freeNest()<0){toast('Tous les nids sont occupés.');return;}
+    if(spend(450))giveEgg(mysterySpecies(),true);
+  }
+  else if(k==='pen'){
+    if(S.pens.length>=MAXPENS)return;
+    if(spend(penPrice()))S.pens.push(null);
+  }
+  else if(k==='nest'){
+    if(S.nests.length>=4)return;
+    const p=nestPrice();
+    if(S.gems<p){toast('Pas assez de gemmes.');return;}
+    S.gems-=p;S.nests.push(null);
+  }
+  else if(k==='gem'){if(spend(600))S.gems++;}
+}
+function sell(id){
+  const d=S.dragons[id];if(!d)return;
+  if(dragonList().length<=1){toast('Gardez au moins un dragon.');ui.sell=null;return;}
+  S.gold+=sellValue(d);S.stats.sold++;
+  S.pens[S.pens.indexOf(id)]=null;delete S.dragons[id];
+  if(ui.pa===id)ui.pa=null;if(ui.pb===id)ui.pb=null;
+  ui.sell=null;ui.modal=null;toast('Dragon vendu.');
+}
+const QUESTS=[
+  {id:'q1',t:'Faire éclore 3 dragons',max:3,p:()=>S.stats.hatched,r:{gold:80,gems:1}},
+  {id:'q2',t:'Nourrir des dragons 15 fois',max:15,p:()=>S.stats.fed,r:{food:8}},
+  {id:'q3',t:'Récolter 1 000 pièces au total',max:1000,p:()=>S.stats.collected,r:{gold:150}},
+  {id:'q4',t:'Faire grandir un dragon jusqu’au niveau 7',max:7,p:()=>maxLv(),r:{gems:2}},
+  {id:'q5',t:'Réussir 3 croisements',max:3,p:()=>S.stats.bred,r:{gems:1,food:10}},
+  {id:'q6',t:'Découvrir 5 espèces',max:5,p:()=>Object.keys(S.disc).length,r:{gems:3}},
+  {id:'q7',t:'Posséder 6 enclos',max:6,p:()=>S.pens.length,r:{gold:500}},
+  {id:'q8',t:'Découvrir les 10 espèces',max:10,p:()=>Object.keys(S.disc).length,r:{gems:10}}
+];
+function rewardText(r){
+  const o=[];
+  if(r.gold)o.push(fmt(r.gold)+' pièces');
+  if(r.gems)o.push(r.gems+(r.gems>1?' gemmes':' gemme'));
+  if(r.food)o.push(r.food+' baies');
+  return o.join(' + ');
+}
+function claim(id){
+  const q=QUESTS.find(x=>x.id===id);
+  if(!q||S.claimed[id]||q.p()<q.max)return;
+  S.claimed[id]=1;S.gold+=q.r.gold||0;S.gems+=q.r.gems||0;S.food+=q.r.food||0;
+  toast('Récompense : '+rewardText(q.r));
+}
+const claimable=()=>QUESTS.some(q=>!S.claimed[q.id]&&q.p()>=q.max);
+const readyEgg=()=>S.nests.some(n=>n&&n.end<=Date.now());
+
+/* ---------- Vues ---------- */
+function renderTop(){
+  $('#top').innerHTML=`<div class="brand">Dracovale</div><div class="res">
+<span class="chip" aria-label="Pièces">${ico.gold}<b>${fmt(S.gold)}</b></span>
+<span class="chip" aria-label="Gemmes">${ico.gem}<b>${fmt(S.gems)}</b></span>
+<span class="chip" aria-label="Baies">${ico.berry}<b>${fmt(S.food)}</b></span></div>`;
+}
+function renderNav(){
+  $('#nav').innerHTML='<div class="nav-in">'+TABS.map(t=>{
+    const dot=(t[0]==='nids'&&readyEgg())||(t[0]==='defis'&&claimable());
+    return `<button class="tab ${ui.tab===t[0]?'on':''}" data-act="tab" data-v="${t[0]}" ${ui.tab===t[0]?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${NAVI[t[0]]}</svg>${t[1]}${dot?'<i class="dot"></i>':''}</button>`;
+  }).join('')+'</div>';
+}
+function penCard(i){
+  const id=S.pens[i];
+  if(!id)return `<div class="pen empty"><b>Enclos libre</b><span class="small">Faites éclore un œuf pour l’occuper.</span></div>`;
+  const d=S.dragons[id],sp=SPECIES[d.sp],p=pending(d);
+  const pct=d.lv>=MAXLV?100:d.xp/xpNeed(d.lv)*100;
+  return `<article class="pen" style="--el:${sp.c.b}">
+<button class="coin ${p<1?'empty':''} ${p>=capOf(d)-.5?'full':''}" data-act="collect" data-id="${id}" aria-label="Récolter les pièces">${ico.gold}<span data-pend="${id}">${fmt(p)}</span></button>
+<button class="dragon-btn" data-act="open" data-id="${id}" aria-label="Voir ${sp.n}">${dragonSVG(d.sp,stageOf(d.lv),'bob')}</button>
+<div class="pen-meta"><b>${sp.n}</b><span class="lv">Niv. ${d.lv}</span></div>
+<div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
+<button class="btn" data-act="feed" data-id="${id}" data-n="1">Nourrir ${ico.berry}</button>
+</article>`;
+}
+function viewDomaine(){
+  const ds=dragonList(),inc=ds.reduce((s,d)=>s+incOf(d),0),tot=ds.reduce((s,d)=>s+pending(d),0);
+  let h='<h1>Votre domaine</h1><p class="lead">Chaque dragon rapporte des pièces. Récoltez, nourrissez-les pour les faire grandir, puis croisez-les.</p>';
+  if(S.tip)h+=`<div class="tip"><p><b>Pour commencer :</b> touchez la bulle dorée pour récolter, puis nourrissez Braisard. Un œuf d’eau éclot dans l’onglet Nids.</p><button class="btn ghost" data-act="tipoff">OK</button></div>`;
+  h+=`<div class="row between" style="margin-bottom:12px"><span class="chip">${ico.gold}<b>${fmt(inc)}</b>&nbsp;/ min</span><button class="btn gold" data-act="collectall">Tout récolter <span data-tot>${fmt(tot)}</span></button></div><div class="grid">`;
+  for(let i=0;i<S.pens.length;i++)h+=penCard(i);
+  if(S.pens.length<MAXPENS)h+=`<button class="pen buy" data-act="buy" data-k="pen">Nouvel enclos<span class="chip">${ico.gold}<b>${fmt(penPrice())}</b></span></button>`;
+  return h+'</div>';
+}
+function nestCard(i){
+  const e=S.nests[i],now=Date.now();
+  if(!e)return `<div class="card nest empty"><b>Nid ${i+1} vide</b><p class="small">Achetez un œuf à la boutique ou lancez un croisement.</p></div>`;
+  const total=RAR[SPECIES[e.sp].r].hatch*1000,left=e.end-now,ready=left<=0;
+  const cost=Math.max(1,Math.ceil(left/30000));
+  return `<div class="card nest"><div>${eggSVG(e.sp,e.mys,ready?'wob':'')}</div><div class="list" style="gap:8px">
+<b>${e.mys?'Œuf mystère':'Œuf de '+SPECIES[e.sp].el}</b>
+${ready?`<span class="small">Il frémit, il est prêt.</span><button class="btn gold" data-act="hatch" data-i="${i}">Faire éclore</button>`
+:`<span class="small">Éclosion dans <b data-eta="${i}">${timeStr(left)}</b></span><div class="bar g"><i data-prog="${i}" style="width:${Math.min(100,(1-left/total)*100)}%"></i></div><button class="btn" data-act="speed" data-i="${i}" ${S.gems<cost?'disabled':''}>Accélérer ${ico.gem}<b data-cost="${i}">${cost}</b></button>`}
+</div></div>`;
+}
+function slotHTML(s){
+  const id=s==='a'?ui.pa:ui.pb,d=id&&S.dragons[id];
+  if(!d)return `<button class="slot" data-act="pick" data-s="${s}"><b>Parent ${s.toUpperCase()}</b><span class="small">Choisir un dragon</span></button>`;
+  return `<button class="slot on" data-act="pick" data-s="${s}">${dragonSVG(d.sp,stageOf(d.lv))}<b>${SPECIES[d.sp].n}</b><span class="small">Niv. ${d.lv}</span></button>`;
+}
+function viewNids(){
+  let h='<h1>Nids</h1><p class="lead">Les œufs éclosent ici. Un dragon qui éclot rejoint un enclos libre.</p><div class="list">';
+  for(let i=0;i<S.nests.length;i++)h+=nestCard(i);
+  h+='</div>';
+  const A=ui.pa&&S.dragons[ui.pa],B=ui.pb&&S.dragons[ui.pb];
+  h+=`<h2 style="margin:24px 0 4px">Croisement</h2><p class="lead" style="margin-bottom:0">Deux dragons de niveau 4 ou plus donnent un œuf mystère. Chaque parent se repose ensuite 90 secondes.</p><div class="slots">${slotHTML('a')}${slotHTML('b')}</div>`;
+  if(A&&B){
+    h+='<div class="card" style="margin-bottom:12px"><div class="small" style="margin-bottom:6px">Résultats possibles</div><div class="minis">'+possible(A.sp,B.sp).map(k=>{
+      const known=S.disc[k];
+      return known?`<span class="chip">${dragonSVG(k,2)}${SPECIES[k].n}</span>`:`<span class="chip sil">${dragonSVG(k,2)}<b>???</b></span>`;
+    }).join('')+'</div></div>';
+  }
+  h+=`<button class="btn gold" style="width:100%" data-act="breed" ${A&&B?'':'disabled'}>Croiser pour ${ico.gold}<b>${BREED_COST}</b></button>`;
+  return h;
+}
+function viewBoutique(){
+  const row=(t,p,price,k,cur,dis)=>`<div class="item"><div><b>${t}</b><p class="small">${p}</p></div><button class="btn gold" data-act="buy" data-k="${k}" ${dis?'disabled':''}>${ico[cur||'gold']}<b>${fmt(price)}</b></button></div>`;
+  let h='<h1>Boutique</h1><p class="lead">Baies pour nourrir, œufs pour agrandir le domaine.</p><div class="shop">';
+  h+=row('5 baies','De quoi faire grandir un jeune dragon.',50,'food5','gold',S.gold<50);
+  h+=row('20 baies','Le lot économique.',170,'food20','gold',S.gold<170);
+  BASIC.forEach(k=>{h+=row('Œuf de '+SPECIES[k].el,'Fait éclore '+SPECIES[k].n+'. Éclosion en 20 s.',120,'egg:'+k,'gold',S.gold<120||freeNest()<0);});
+  h+=row('Œuf mystère','Peut cacher une espèce rare, voire épique.',450,'mys','gold',S.gold<450||freeNest()<0);
+  if(S.pens.length<MAXPENS)h+=row('Enclos supplémentaire','Un dragon de plus qui rapporte des pièces. Vous en avez '+S.pens.length+'.',penPrice(),'pen','gold',S.gold<penPrice());
+  if(S.nests.length<4)h+=row('Nid supplémentaire','Faites éclore plusieurs œufs à la fois.',nestPrice(),'nest','gem',S.gems<nestPrice());
+  h+=row('Une gemme','Échangez 600 pièces contre 1 gemme.',600,'gem','gold',S.gold<600);
+  return h+'</div>';
+}
+function viewBestiaire(){
+  const n=Object.keys(S.disc).length;
+  let h=`<h1>Bestiaire</h1><p class="lead">${n} espèces découvertes sur ${ORDER.length}. Les croisements révèlent les plus rares.</p><div class="dex">`;
+  ORDER.forEach(k=>{
+    const s=SPECIES[k],known=S.disc[k];
+    const rec=Object.keys(RECIPES).find(x=>RECIPES[x]===k);
+    let how='Œuf de la boutique';
+    if(rec)how=known?'Croiser '+rec.split('+').map(x=>SPECIES[x].n).join(' + '):'Obtenu par croisement';
+    h+=`<div class="dexc"><div class="${known?'':'sil'}">${dragonSVG(k,2)}</div><b>${known?s.n:'???'}</b>
+<div class="row" style="gap:6px"><span class="chip el" style="background:${s.c.b}">${s.el}</span><span class="small">${RAR[s.r].n}</span></div>
+<span class="small">${known?RAR[s.r].inc+' pièces/min par niveau':'Espèce inconnue'}</span><span class="small">${how}</span></div>`;
+  });
+  return h+'</div>';
+}
+function viewDefis(){
+  let h='<h1>Défis</h1><p class="lead">Des objectifs qui rapportent pièces, baies et gemmes.</p><div class="list">';
+  QUESTS.forEach(q=>{
+    const p=Math.min(q.max,q.p()),done=!!S.claimed[q.id],ok=p>=q.max;
+    h+=`<div class="q ${done?'done':''}"><div><b>${q.t}</b><div class="small">Récompense : ${rewardText(q.r)}</div></div>
+${done?'<span class="small">Réclamé</span>':`<button class="btn gold" data-act="claim" data-id="${q.id}" ${ok?'':'disabled'}>Réclamer</button>`}
+<div class="bar"><i style="width:${p/q.max*100}%"></i></div></div>`;
+  });
+  h+=`</div><div style="margin-top:28px" class="row"><button class="btn ghost" data-act="reset">${ui.arm?'Confirmer : tout effacer':'Recommencer la partie'}</button>${ui.arm?'<button class="btn ghost" data-act="resetno">Annuler</button>':''}</div>`;
+  return h;
+}
+const VIEWS={domaine:viewDomaine,nids:viewNids,boutique:viewBoutique,bestiaire:viewBestiaire,defis:viewDefis};
+
+function modalHTML(){
+  const m=ui.modal;if(!m)return '';
+  let inner='';
+  if(m.t==='dragon'){
+    const d=S.dragons[m.id];if(!d){ui.modal=null;return '';}
+    const s=SPECIES[d.sp],pct=d.lv>=MAXLV?100:d.xp/xpNeed(d.lv)*100,st=['Bébé','Jeune','Adulte'][stageOf(d.lv)];
+    inner=`<div class="big">${dragonSVG(d.sp,stageOf(d.lv),'bob')}</div><h2>${s.n}</h2>
+<div class="row"><span class="chip el" style="background:${s.c.b}">${s.el}</span><span class="chip">${RAR[s.r].n}</span><span class="chip">${st}, niv. ${d.lv}</span></div>
+<div class="bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
+<div class="small">${d.lv>=MAXLV?'Niveau maximum':d.xp+' / '+xpNeed(d.lv)+' baies avant le niveau suivant'}</div>
+<div class="small">Rapporte ${fmt(incOf(d))} pièces par minute, stock limité à ${fmt(capOf(d))}.</div>
+<div class="row"><button class="btn gold" data-act="collect" data-id="${d.id}">Récolter ${ico.gold}<span data-pend="${d.id}">${fmt(pending(d))}</span></button></div>
+<div class="row"><button class="btn" data-act="feed" data-id="${d.id}" data-n="1">Nourrir ×1 ${ico.berry}</button><button class="btn" data-act="feed" data-id="${d.id}" data-n="5">Nourrir ×5 ${ico.berry}</button></div>
+${ui.sell===d.id?`<div class="row"><button class="btn ghost" data-act="sellok" data-id="${d.id}">Vendre pour ${fmt(sellValue(d))} pièces</button><button class="btn ghost" data-act="sellno">Annuler</button></div>`
+:`<div class="row"><button class="btn ghost" data-act="sell" data-id="${d.id}">Vendre</button><button class="btn ghost" data-act="close">Fermer</button></div>`}`;
+  }else if(m.t==='reveal'){
+    const s=SPECIES[m.sp];
+    inner=`<h2>${m.isNew?'Nouvelle espèce !':'Éclosion !'}</h2><div class="big">${dragonSVG(m.sp,0,'bob')}</div><h2>${s.n}</h2>
+<div class="row"><span class="chip el" style="background:${s.c.b}">${s.el}</span><span class="chip">${RAR[s.r].n}</span></div>
+${m.isNew?`<p class="small" style="margin:0">Ajouté au bestiaire : +2 gemmes ${ico.gem}</p>`:''}
+<div class="row"><button class="btn gold" data-act="close">Super</button></div>`;
+  }else if(m.t==='pick'){
+    const other=m.slot==='a'?ui.pb:ui.pa,now=Date.now();
+    const ds=dragonList().filter(d=>d.id!==other);
+    inner=`<h2>Choisir le parent ${m.slot.toUpperCase()}</h2>`+(ds.length?ds.map(d=>{
+      const rest=d.rest>now,ok=canBreed(d)&&!rest;
+      const why=!canBreed(d)?'Niveau 4 requis':rest?'Repos '+timeStr(d.rest-now):'Niv. '+d.lv;
+      return `<button class="pick" data-act="choose" data-s="${m.slot}" data-id="${d.id}" ${ok?'':'disabled'}>${dragonSVG(d.sp,stageOf(d.lv))}<b>${SPECIES[d.sp].n}</b><span class="small">${why}</span></button>`;
+    }).join(''):'<p class="small">Aucun autre dragon disponible.</p>')+`<div class="row"><button class="btn ghost" data-act="close">Annuler</button></div>`;
+  }
+  return `<div class="modal" data-act="close"><div class="sheet" role="dialog" aria-modal="true">${inner}</div></div>`;
+}
+function render(){
+  renderTop();renderNav();
+  $('#view').innerHTML=VIEWS[ui.tab]();
+  $('#modal').innerHTML=modalHTML();
+}
+
+/* ---------- Actions ---------- */
+function act(a,ds){
+  switch(a){
+    case 'tab':ui.tab=ds.v;ui.modal=null;window.scrollTo(0,0);break;
+    case 'close':ui.modal=null;ui.sell=null;break;
+    case 'open':ui.modal={t:'dragon',id:+ds.id};ui.sell=null;break;
+    case 'collect':collect(+ds.id);break;
+    case 'collectall':collectAll();break;
+    case 'feed':feed(+ds.id,+ds.n||1);break;
+    case 'hatch':hatch(+ds.i);break;
+    case 'speed':speed(+ds.i);break;
+    case 'buy':buy(ds.k);break;
+    case 'pick':ui.modal={t:'pick',slot:ds.s};break;
+    case 'choose':if(ds.s==='a')ui.pa=+ds.id;else ui.pb=+ds.id;ui.modal=null;break;
+    case 'breed':breed();break;
+    case 'sell':ui.sell=+ds.id;break;
+    case 'sellno':ui.sell=null;break;
+    case 'sellok':sell(+ds.id);break;
+    case 'claim':claim(ds.id);break;
+    case 'tipoff':S.tip=false;break;
+    case 'reset':
+      if(ui.arm){S=fresh();ui.arm=false;ui.pa=ui.pb=null;ui.modal=null;ui.tab='domaine';window.scrollTo(0,0);}
+      else ui.arm=true;
+      break;
+    case 'resetno':ui.arm=false;break;
+  }
+  save();render();
+}
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;
+  if(el.dataset.act==='close'&&e.target!==el&&el.classList.contains('modal'))return;
+  act(el.dataset.act,el.dataset);
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui.modal){ui.modal=null;ui.sell=null;render();}});
+
+/* ---------- Boucle de temps ---------- */
+const sig=()=>S.nests.map(n=>n?(n.end<=Date.now()?1:0):2).join('');
+let lastSig=sig();
+setInterval(()=>{
+  const now=Date.now();
+  document.querySelectorAll('[data-pend]').forEach(el=>{
+    const d=S.dragons[el.dataset.pend];if(!d)return;
+    const p=pending(d);el.textContent=fmt(p);
+    const c=el.closest('.coin');if(c){c.classList.toggle('empty',p<1);c.classList.toggle('full',p>=capOf(d)-.5);}
+  });
+  const tot=document.querySelector('[data-tot]');
+  if(tot)tot.textContent=fmt(dragonList().reduce((s,d)=>s+pending(d),0));
+  document.querySelectorAll('[data-eta]').forEach(el=>{
+    const e=S.nests[+el.dataset.eta];if(!e)return;
+    el.textContent=timeStr(e.end-now);
+    const total=RAR[SPECIES[e.sp].r].hatch*1000;
+    const bar=document.querySelector('[data-prog="'+el.dataset.eta+'"]');
+    if(bar)bar.style.width=Math.min(100,(1-(e.end-now)/total)*100)+'%';
+    const c=document.querySelector('[data-cost="'+el.dataset.eta+'"]');
+    if(c)c.textContent=Math.max(1,Math.ceil((e.end-now)/30000));
+  });
+  const s=sig();
+  if(s!==lastSig){lastSig=s;render();}
+},250);
+setInterval(save,5000);
+window.addEventListener('pagehide',save);
+
+render();
+})();
+</script>
+
+</body>
+</html>
